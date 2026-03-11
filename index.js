@@ -1,39 +1,25 @@
 const WebSocket = require('ws');
-const port = process.env.PORT || 8080;
-const wss = new WebSocket.Server({ port });
-
-let leader = null;
+const wss = new WebSocket.Server({ port: process.env.PORT || 8080 });
 
 wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         const data = JSON.parse(message);
-
-        if (data.type === 'claim_leader') {
-            leader = ws;
-            wss.clients.forEach(client => {
-                client.send(JSON.stringify({ type: 'status', text: 'Ведущий назначен' }));
-            });
-        } 
         
-        // Рассылка скролла (только от ведущего)
-        if (data.type === 'scroll' && ws === leader) {
-            wss.clients.forEach(client => {
-                if (client !== leader && client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'sync', percent: data.percent }));
-                }
-            });
+        // При первом сообщении привязываем пользователя к комнате
+        if (data.type === 'join') {
+            ws.roomID = data.roomID;
+            console.log(`Пользователь зашел в комнату: ${ws.roomID}`);
         }
 
-        // Рассылка сообщений чата (от любого пользователя)
-        if (data.type === 'chat') {
-            wss.clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'chat', text: data.text, sender: data.sender }));
-                }
-            });
-        }
+        // Рассылаем сообщения ТОЛЬКО тем, кто в той же комнате
+        wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomID === ws.roomID) {
+                client.send(JSON.stringify(data));
+            }
+        });
     });
 
-    ws.on('close', () => { if (ws === leader) leader = null; });
+    ws.on('close', () => console.log('Кто-то отключился'));
 });
-console.log(`Сервер запущен на порту ${port}`);
+
+console.log('Сервер с поддержкой комнат запущен!');

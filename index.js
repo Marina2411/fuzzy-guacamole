@@ -5,7 +5,7 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         const data = JSON.parse(message);
         
-        // При первом сообщении привязываем пользователя к комнате
+        
         if (data.type === 'join') {
             ws.roomID = data.roomID;
             console.log(`Пользователь зашел в комнату: ${ws.roomID}`);

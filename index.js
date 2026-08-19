@@ -27,6 +27,19 @@ wss.on('connection', (ws) => {
             console.log(`Пользователь зашел в комнату: ${ws.roomID}`);
         }
 
+        if (data.type === 'claim_leader') {
+            // Кто-то заявляет себя ведущим — рассылаем это ВСЕМ в комнате,
+            // включая самого отправителя. Двух ведущих одновременно быть не
+            // может: получив это сообщение, все остальные автоматически
+            // становятся читателями (см. content.js).
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN && client.roomID === ws.roomID) {
+                    client.send(JSON.stringify({ type: 'leader_changed', leaderName: data.sender, roomID: ws.roomID }));
+                }
+            });
+            return;
+        }
+
         // Рассылаем сообщения ТОЛЬКО тем, кто в той же комнате
         wss.clients.forEach((client) => {
             if (client !== ws && client.readyState === WebSocket.OPEN && client.roomID === ws.roomID) {

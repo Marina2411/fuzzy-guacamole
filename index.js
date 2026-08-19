@@ -627,36 +627,4 @@ process.on(
         process.exit(0);
 
     }
-);                    client.send(JSON.stringify({ type: 'leader_changed', leaderName: data.sender, roomID: ws.roomID }));
-                }
-            });
-            return;
-        }
-
-        // Рассылаем сообщения ТОЛЬКО тем, кто в той же комнате
-        wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN && client.roomID === ws.roomID) {
-                client.send(JSON.stringify(data));
-            }
-        });
-    });
-
-    ws.on('close', () => console.log('Кто-то отключился'));
-});
-
-// Проверяем "зомби"-подключения (например, телефон свернули/потерял сеть)
-// и закрываем их, чтобы комната не засорялась мёртвыми клиентами
-const interval = setInterval(() => {
-    wss.clients.forEach((ws) => {
-        if (ws.isAlive === false) return ws.terminate();
-        ws.isAlive = false;
-        ws.ping();
-    });
-}, 30000);
-
-wss.on('close', () => clearInterval(interval));
-
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`Сервер с поддержкой комнат запущен на порту ${PORT}`);
-});
+);
